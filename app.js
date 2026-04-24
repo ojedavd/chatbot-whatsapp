@@ -1,7 +1,15 @@
 const { createBot, createProvider, createFlow, addKeyword, EVENTS } = require('@bot-whatsapp/bot')
 
+const getExecutablePath = () => {
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
+  if (process.platform === 'win32') return 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+  if (process.platform === 'darwin') return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+  if (process.platform === 'linux') return '/usr/bin/google-chrome';
+  return undefined;
+};
+
 const QRPortalWeb = require('@bot-whatsapp/portal')
-const BaileysProvider = require('@bot-whatsapp/provider/baileys')
+const WWebJSProvider = require('@bot-whatsapp/provider/web-whatsapp')
 const MockAdapter = require('@bot-whatsapp/database/mock')
 
 const flowPrincipal = addKeyword(['hola', 'ole', 'alo'])
@@ -16,7 +24,7 @@ const flowMedia = addKeyword(EVENTS.MEDIA)
     '📎 Recibí tu archivo multimedia. En breve lo procesaré.',
     null,
     async (ctx) => {
-      console.log('Archivo recibido:', ctx.message.imageMessage);
+      console.log('Archivo recibido:', ctx.type);
     }
   );
 
@@ -26,10 +34,11 @@ const flowLocation = addKeyword(EVENTS.LOCATION)
     null,
     async (ctx) => {
       try {
-        const location = ctx?.message?.locationMessage;
-        const { degreesLatitude, degreesLongitude } = location;
+        const location = ctx?.location || ctx?._data;
+        const lat = location?.lat || location?.degreesLatitude;
+        const lng = location?.lng || location?.degreesLongitude;
 
-        console.log('Ubicación recibida:', { degreesLatitude, degreesLongitude });
+        console.log('Ubicación recibida:', { lat, lng });
       } catch (err) {
         console.error('Error en flowLocation:', err);
       }
@@ -42,10 +51,8 @@ const flowDocument = addKeyword(EVENTS.DOCUMENT)
     null,
     async (ctx) => {
       try {
-        const document = ctx?.message?.documentMessage;
-        const { fileName, fileLength } = document;
-
-        console.log('Documento recibido:', { fileName, fileLength });
+        const document = ctx?._data || ctx?.message?.documentMessage;
+        console.log('Documento recibido:', document?.filename || document?.fileName);
       } catch (err) {
         console.error('Error en flowDocument:', err);
       }
@@ -58,10 +65,7 @@ const flowVoiceNote = addKeyword(EVENTS.VOICE_NOTE)
     null,
     async (ctx) => {
       try {
-        const voiceNote = ctx?.message?.audioMessage;
-        const { fileLength, seconds } = voiceNote;
-
-        console.log('Nota de voz recibida:', { fileLength, seconds });
+        console.log('Nota de voz recibida');
       } catch (err) {
         console.error('Error en flowVoiceNote:', err);
       }
@@ -112,7 +116,12 @@ const flowDynamic = addKeyword(['clima', 'tiempo', 'weather'])
 const main = async () => {
   const adapterDB = new MockAdapter()
   const adapterFlow = createFlow([flowPrincipal, flowWelcome, flowMedia, flowLocation, flowDocument, flowVoiceNote, flowAction, flowDynamic])
-  const adapterProvider = createProvider(BaileysProvider)
+  const adapterProvider = createProvider(WWebJSProvider, {
+    puppeteer: {
+      executablePath: getExecutablePath(),
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    }
+  })
 
   createBot({
     flow: adapterFlow,
@@ -123,7 +132,7 @@ const main = async () => {
   setTimeout(async () => {
     await adapterProvider.sendText(
       '5493435197408@s.whatsapp.net',
-      '🚨 Mensaje ACTION de prueba'
+      '🚨🚨🚨 Mensaje ACTION de prueba'
     );
   }, 20000);
 

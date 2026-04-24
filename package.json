@@ -15,7 +15,7 @@
         "@bot-whatsapp/database": "latest",
         "@bot-whatsapp/portal": "latest",
         "@bot-whatsapp/provider": "latest",
-        "@whiskeysockets/baileys": "6.5.0",
+        "whatsapp-web.js": "latest",
         "cache-manager": "5.2.4",
         "node-fetch": "^2.7.0",
         "wa-sticker-formatter": "4.4.4"
